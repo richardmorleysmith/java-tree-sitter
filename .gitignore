@@ -391,3 +391,6 @@ Temporary Items
 
 # DOT files
 *.dot
+
+# Intellij
+*.idea
