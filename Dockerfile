@@ -1,5 +1,5 @@
-FROM alpine:3.17.7 AS build
-LABEL maintainer="Ozren Dabić (dabico@usi.ch)"
+FROM debian:12.11 AS build
+LABEL maintainer="Richard Morley-Smith"
 
 ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk"
 
@@ -14,7 +14,7 @@ RUN apk update && \
 WORKDIR /java-tree-sitter
 COPY . ./
 
-RUN python build.py
+RUN python build.py -a ${ARCH}
 
 FROM scratch AS export
 

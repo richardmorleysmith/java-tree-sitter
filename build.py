@@ -2,8 +2,8 @@
 
 from argparse import ArgumentParser
 from ctypes.util import find_library as find_cpp_library
-from distutils.ccompiler import new_compiler as new_c_compiler
-from distutils.log import set_verbosity as set_log_verbosity
+from setuptools._distutils.ccompiler import new_compiler as new_c_compiler
+from setuptools.logging import set_threshold as set_log_verbosity
 from glob import glob as find
 from os import environ
 from os import system as cmd
