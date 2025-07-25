@@ -3,7 +3,6 @@
 from argparse import ArgumentParser
 from ctypes.util import find_library as find_cpp_library
 from setuptools._distutils.ccompiler import new_compiler as new_c_compiler
-from setuptools.logging import set_threshold as set_log_verbosity
 from glob import glob as find
 from os import environ
 from os import system as cmd
@@ -173,5 +172,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    set_log_verbosity(int(args.verbose))
     build(args.repositories, args.output, args.system, args.arch, args.verbose)
