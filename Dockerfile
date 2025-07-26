@@ -1,23 +1,26 @@
 FROM alpine:3.17.7 AS build
-LABEL maintainer="Ozren Dabić (dabico@usi.ch)"
 
+ARG ARCH
 ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk"
 
 RUN apk update && \
-    apk add --no-cache \
-            openjdk11~=11.0.23 \
-            python3~=3.10.14 \
-            py3-distutils-extra~=2.47 \
-            make~=4.3 \
-            g++~=12.2.1
+    apk add --no-cache  \
+        g++ \
+        make \
+        openjdk11 \
+        py3-distutils-extra \
+        python3
 
 WORKDIR /java-tree-sitter
 COPY . ./
 
-RUN python build.py
+# Use clang instead of gcc and add sequential compilation
+RUN apk add --no-cache clang && \
+    CC=clang CXX=clang++ python build.py -s 'Linux' -a ${ARCH}
 
 FROM scratch AS export
 
 WORKDIR /
 
-COPY --from=build /java-tree-sitter/libjava-tree-sitter.so .
+ARG ARCH
+COPY --from=build /java-tree-sitter/libjava-tree-sitter-linux-${ARCH}.so .

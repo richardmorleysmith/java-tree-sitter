@@ -25,7 +25,8 @@ import java.net.URL;
 @UtilityClass
 public class LibraryLoader {
 
-    private static final String LIBRARY_FILE_NAME = "libjava-tree-sitter";
+    private static final String BASE_LIBRARY_FILE_NAME = "libjava-tree-sitter";
+    private static final String LIBRARY_FILE_NAME = getLibraryFileName();
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -44,8 +45,7 @@ public class LibraryLoader {
      * Call this once prior to using any of the APIs.
      */
     public void load() {
-        String filename = String.format("%s.%s", LIBRARY_FILE_NAME, getExtension());
-        SystemResource systemResource = new SystemResource(filename);
+        SystemResource systemResource = new SystemResource(LIBRARY_FILE_NAME);
         String libPath = getLibPath(systemResource);
         System.load(libPath);
     }
@@ -74,7 +74,21 @@ public class LibraryLoader {
         }
     }
 
-    private String getExtension() {
+    private static String getLibraryFileName()
+    {
+        return String.format("%s-%s.%s", BASE_LIBRARY_FILE_NAME, getOsAndArch(), getExtension());
+    }
+
+    private static String getOsAndArch()
+    {
+        final String arch = SystemUtils.OS_ARCH;
+
+        return String.format("%s-%s",
+                SystemUtils.IS_OS_MAC ? "darwin" : "linux",
+                arch.contains("aarch") || arch.contains("arm") ? "arm64" : "x86_64");
+    }
+
+    private static String getExtension() {
         if (SystemUtils.IS_OS_LINUX) return "so";
         else if (SystemUtils.IS_OS_MAC) return "dylib";
         else throw new TreeSitterException(

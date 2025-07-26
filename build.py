@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import platform
 from argparse import ArgumentParser
 from ctypes.util import find_library as find_cpp_library
 from distutils.ccompiler import new_compiler as new_c_compiler
@@ -10,12 +10,11 @@ from os import system as cmd
 from os.path import basename, dirname, exists, getmtime, realpath
 from os.path import join as path
 from os.path import split as split_path
-from platform import system as os_name
 from tempfile import TemporaryDirectory
 
 
 # adapted from https://github.com/tree-sitter/py-tree-sitter
-def build(repositories, output_path="libjava-tree-sitter", system=None, arch=None, verbose=False):
+def build(repositories, output_dir=None, system=None, arch=None, verbose=False):
     here = dirname(realpath(__file__))
 
     if not repositories:
@@ -24,23 +23,24 @@ def build(repositories, output_path="libjava-tree-sitter", system=None, arch=Non
     if not repositories:
         raise ValueError("Library can not be compiled, no grammars were included!")
 
-    if system is None:
-        system = os_name()
+    system = system if system else platform.system()
+    arch = arch if arch else platform.machine()
 
-    if arch and system != "Darwin":
-        arch = "64" if "64" in arch else "32"
-    if arch and system == "Darwin":
-        arch = "arm64" if "aarch64" in arch else arch
+    # Normalize architecture
+    arch = "arm64" if "aarch64" in arch.lower() or "arm64" in arch.lower() else "x86_64"
 
+    # Determine output folder and extension
     output_extension = "dylib" if system == "Darwin" else "so"
-    output_path = f"{output_path}.{output_extension}"
+    output_path = f"{output_dir + '/' if output_dir else ''}libjava-tree-sitter-{system.lower()}-{arch}.{output_extension}"
     env = ""
+    command_flags = []
     if arch:
-        env += (
-            f"CFLAGS='-arch {arch} -mmacosx-version-min=11.0' LDFLAGS='-arch {arch}'"
-            if system == "Darwin"
-            else f"CFLAGS='-m{arch}' LDFLAGS='-m{arch}'"
-        )
+        if system == "Darwin":
+            command_flags += ['-arch', arch]
+            env += f"CFLAGS='-arch {arch} -mmacosx-version-min=11.0' LDFLAGS='-arch {arch}'"
+        elif "x86" in arch:
+            command_flags += ['-m64']
+            env += "CFLAGS='-m64' LDFLAGS='-m64'"
 
     tree_sitter = path(here, "tree-sitter")
     redirect = "> /dev/null" if not verbose else ""
@@ -48,6 +48,8 @@ def build(repositories, output_path="libjava-tree-sitter", system=None, arch=Non
     cmd(f"{env} make -C \"{tree_sitter}\" {redirect}")
 
     source_paths = find(path(here, "lib", "*.cc"))
+
+    print(system)
 
     compiler = new_c_compiler()
     for repository in repositories:
@@ -93,7 +95,7 @@ def build(repositories, output_path="libjava-tree-sitter", system=None, arch=Non
     with TemporaryDirectory(suffix="tree_sitter_language") as out_dir:
         object_paths = []
         for source_path in source_paths:
-            flags = ["-O3"]
+            flags = ["-O2", "-pipe"]  # Use -O2 instead of -O3 to reduce memory usage
 
             if system == "Linux":
                 flags.append("-fPIC")
@@ -101,8 +103,8 @@ def build(repositories, output_path="libjava-tree-sitter", system=None, arch=Non
             if source_path.endswith(".c"):
                 flags.append("-std=c11")
 
-            if arch:
-                flags += ["-arch", arch] if system == "Darwin" else [f"-m{arch}"]
+            if "arm" not in arch:
+                flags += command_flags
 
             include_dirs = [
                 dirname(source_path),
@@ -111,21 +113,32 @@ def build(repositories, output_path="libjava-tree-sitter", system=None, arch=Non
                 path(here, "tree-sitter", "lib", "include"),
             ]
 
-            object_paths.append(
-                compiler.compile(
+            try:
+                object_path = compiler.compile(
                     [source_path],
                     output_dir=out_dir,
                     include_dirs=include_dirs,
                     extra_preargs=flags,
                 )[0]
-            )
+                object_paths.append(object_path)
+            except Exception as e:
+                print(f"Failed to compile {source_path}: {e}")
+                # Try with reduced optimization
+                reduced_flags = [flag for flag in flags if flag != "-O2"] + ["-O0"]
+                object_path = compiler.compile(
+                    [source_path],
+                    output_dir=out_dir,
+                    include_dirs=include_dirs,
+                    extra_preargs=reduced_flags,
+                )[0]
+                object_paths.append(object_path)
 
         extra_preargs = []
         if system == "Darwin":
             extra_preargs.append("-dynamiclib")
 
-        if arch:
-            extra_preargs += ["-arch", arch] if system == "Darwin" else [f"-m{arch}"]
+        if "arm" not in arch:
+            extra_preargs += command_flags
 
         compiler.link_shared_object(
             object_paths,
@@ -143,18 +156,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s",
         "--system",
-        help="Operating system to build for (Linux, Darwin, Windows)."
+        help="Operating system to build for (Linux, Darwin)."
+    )
+    parser.add_argument(
+        "-o",
+        "--output_dir",
+        help="Output directory."
     )
     parser.add_argument(
         "-a",
         "--arch",
         help="Architecture to build for (x86, x86_64, arm64, aarch64).",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        default="libjava-tree-sitter",
-        help="Output file name.",
     )
     parser.add_argument(
         "-v",
@@ -174,4 +186,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     set_log_verbosity(int(args.verbose))
-    build(args.repositories, args.output, args.system, args.arch, args.verbose)
+    build(args.repositories, args.output_dir, args.system, args.arch, args.verbose)

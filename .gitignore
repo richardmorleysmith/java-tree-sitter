@@ -391,3 +391,5 @@ Temporary Items
 
 # DOT files
 *.dot
+**/.claude
+**/.idea

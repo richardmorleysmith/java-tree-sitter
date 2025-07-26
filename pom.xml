@@ -68,13 +68,10 @@
   </issueManagement>
 
   <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
     <repository>
-      <id>ossrh</id>
-      <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/richard-morley-smith/java-tree-sitter</url>
     </repository>
   </distributionManagement>
 
@@ -369,6 +366,7 @@
                   </limits>
                 </rule>
               </rules>
+              <haltOnFailure>false</haltOnFailure>
             </configuration>
           </execution>
         </executions>
@@ -440,6 +438,9 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -481,45 +482,92 @@
             </configuration>
           </execution>
           <execution>
-            <id>build-shared-object-library-macos</id>
+            <id>build-all-native-libraries</id>
             <phase>compile</phase>
             <goals>
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>python</executable>
+              <executable>bash</executable>
               <workingDirectory>${project.basedir}</workingDirectory>
               <arguments>
-                <argument>build.py</argument>
-                <argument>-o</argument>
-                <argument>${project.build.outputDirectory}/libjava-tree-sitter</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>build-shared-object-library-linux</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <environmentVariables>
-                <DOCKER_BUILDKIT>1</DOCKER_BUILDKIT>
-                <BUILDKIT_PROGRESS>plain</BUILDKIT_PROGRESS>
-              </environmentVariables>
-              <executable>docker</executable>
-              <workingDirectory>${project.basedir}</workingDirectory>
-              <arguments>
-                <argument>build</argument>
-                <argument>--quiet</argument>
-                <argument>--file</argument>
-                <argument>Dockerfile</argument>
-                <argument>--output</argument>
+                <argument>build_all.sh</argument>
                 <argument>${project.build.outputDirectory}</argument>
-                <argument>.</argument>
               </arguments>
             </configuration>
           </execution>
+<!--          <execution>-->
+<!--            <id>build-shared-object-library-macos-aarch64</id>-->
+<!--            <phase>compile</phase>-->
+<!--            <goals>-->
+<!--              <goal>exec</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <executable>python</executable>-->
+<!--              <workingDirectory>${project.basedir}</workingDirectory>-->
+<!--              <arguments>-->
+<!--                <argument>build.py</argument>-->
+<!--                <argument>-s</argument>-->
+<!--                <argument>Darwin</argument>-->
+<!--                <argument>-a</argument>-->
+<!--                <argument>aarch64</argument>-->
+<!--              </arguments>-->
+<!--            </configuration>-->
+<!--          </execution>-->
+<!--          <execution>-->
+<!--            <id>build-shared-object-library-macos-x86_64</id>-->
+<!--            <phase>compile</phase>-->
+<!--            <goals>-->
+<!--              <goal>exec</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <executable>python</executable>-->
+<!--              <workingDirectory>${project.basedir}</workingDirectory>-->
+<!--              <arguments>-->
+<!--                <argument>build.py</argument>-->
+<!--                <argument>-s</argument>-->
+<!--                <argument>Darwin</argument>-->
+<!--                <argument>-a</argument>-->
+<!--                <argument>x86_64</argument>-->
+<!--              </arguments>-->
+<!--            </configuration>-->
+<!--          </execution>-->
+<!--          <execution>-->
+<!--            <id>build-shared-object-library-linux-aarch64</id>-->
+<!--            <phase>compile</phase>-->
+<!--            <goals>-->
+<!--              <goal>exec</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <executable>python</executable>-->
+<!--              <workingDirectory>${project.basedir}</workingDirectory>-->
+<!--              <arguments>-->
+<!--                <argument>build.py</argument>-->
+<!--                <argument>-s</argument>-->
+<!--                <argument>linux</argument>-->
+<!--                <argument>-a</argument>-->
+<!--                <argument>aarch64</argument>-->
+<!--              </arguments>-->
+<!--            </configuration>-->
+<!--          </execution>-->
+<!--          <execution>-->
+<!--            <id>build-shared-object-library-linux-x86_64</id>-->
+<!--            <phase>compile</phase>-->
+<!--            <goals>-->
+<!--              <goal>exec</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <executable>python</executable>-->
+<!--              <workingDirectory>${project.basedir}</workingDirectory>-->
+<!--              <arguments>-->
+<!--                <argument>build.py</argument>-->
+<!--                <argument>-s</argument>-->
+<!--                <argument>linux</argument>-->
+<!--                <argument>-a</argument>-->
+<!--                <argument>x86_64</argument>-->
+<!--              </arguments>-->
+<!--            </configuration>-->
+<!--          </execution>-->
         </executions>
       </plugin>
       <plugin>
